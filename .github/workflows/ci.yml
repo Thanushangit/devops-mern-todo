@@ -1,0 +1,46 @@
+name: MERN CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  mongo-init-test:
+    runs-on: ubuntu-latest
+
+    env:
+      PORT: ${{ secrets.PORT }}
+      MONGO_URI: ${{ secrets.MONGO_URI }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+    services:
+      mongo:
+        image: mongo
+        ports: ["27017:27017"]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Waiting for MongoDB to be ready
+        run: |
+          until nc -z localhost 27017; do
+            echo "Waiting for MongoDB..."
+            sleep 2
+          done
+            echo "MongoDB is up"
+
+      - name: Seed MongoDB
+        working-directory: ./backend
+        run: |
+          npm install
+          node seedTasksData.js
+
+      - name: Running Backend Tests
+        working-directory: ./backend
+        run: npm test
